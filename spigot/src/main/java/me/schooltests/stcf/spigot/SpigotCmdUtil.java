@@ -12,6 +12,7 @@ import org.bukkit.command.ConsoleCommandSender;
 import org.bukkit.entity.Player;
 
 import java.util.List;
+import java.util.UUID;
 import java.util.function.BiConsumer;
 
 public class SpigotCmdUtil {
@@ -80,8 +81,8 @@ public class SpigotCmdUtil {
     }
 
     public static Player toPlayer(SimpleSender sender) {
-        if (sender.getName().equalsIgnoreCase("CONSOLE")) return null;
-        return Bukkit.getPlayerExact(sender.getName());
+        if (sender.getIdentifier() == null) return null;
+        return Bukkit.getPlayer(UUID.fromString(sender.getIdentifier()));
     }
 
     public static SimpleSender toSimpleSender(CommandSender sender) {
@@ -89,6 +90,14 @@ public class SpigotCmdUtil {
             @Override
             public String getName() {
                 return sender.getName();
+            }
+
+            @Override
+            public String getIdentifier() {
+                if (sender instanceof Player)
+                    return String.valueOf(((Player) sender).getUniqueId());
+                else
+                    return null;
             }
 
             @Override
