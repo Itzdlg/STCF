@@ -49,7 +49,7 @@ public abstract class STCommand {
         if (subExecutors.size() == 0 && executor == null)
             return ParseResult.NO_EXECUTORS;
 
-        Pair<String, CommandExecutor> executionPair = findExecutor(full);
+        Pair<String, CommandExecutor<?>> executionPair = findExecutor(full);
         String parameters;
 
         if (executionPair.getKey() != null && full.length() > executionPair.getKey().trim().length())
@@ -78,13 +78,13 @@ public abstract class STCommand {
             return ParseResult.MISSING_PARAMETER;
 
         if (executor.getParameters().size() <= 0) {
-            executor.execute(sender, new HashMap<>());
+            executor.execute(sender, new CommandArguments(new LinkedHashMap<>()));
             return ParseResult.SUCCESS;
         }
 
-        Pair<ParseResult, Map<String, Object>> parseResult = parseTransformations(sender, executor, arguments);
+        Pair<ParseResult, LinkedHashMap<String, Object>> parseResult = parseTransformations(sender, executor, arguments);
         if (parseResult.getKey() == ParseResult.SUCCESS)
-            executor.execute(sender, parseResult.getValue());
+            executor.execute(sender, new CommandArguments(parseResult.getValue()));
 
         return parseResult.getKey();
     }
@@ -94,7 +94,7 @@ public abstract class STCommand {
         try {
             if (args == null || args.length == 0) return new ArrayList<>();
 
-            Pair<String, CommandExecutor> executorPair = findExecutor(String.join(" ", args));
+            Pair<String, CommandExecutor<?>> executorPair = findExecutor(String.join(" ", args));
             if (executorPair.getKey() == null)
                 tabCompletions.addAll(subExecutors.keySet());
 
@@ -133,11 +133,11 @@ public abstract class STCommand {
         return tabCompletions;
     }
 
-    private Pair<ParseResult, Map<String, Object>> parseTransformations(SimpleSender sender, CommandExecutor<?> executor, String[] arguments) {
+    private Pair<ParseResult, LinkedHashMap<String, Object>> parseTransformations(SimpleSender sender, CommandExecutor<?> executor, String[] arguments) {
         CommandParameter lastParameter = executor.getParameters().get(0);
         Object lastValue = null;
 
-        Map<String, Object> transformationResults = new HashMap<>();
+        LinkedHashMap<String, Object> transformationResults = new LinkedHashMap<>();
         StringBuilder builder = new StringBuilder();
         for (int i = 0; i < arguments.length; i++) {
             String stringValue = arguments[i];
@@ -150,11 +150,11 @@ public abstract class STCommand {
             } else {
                 CommandContext<?> commandContext = manager.getRegisteredContext(parameter.contextClass);
                 if (commandContext == null)
-                    return new Pair<>(ParseResult.UNREGISTERED_CONTEXT, new HashMap<>());
+                    return new Pair<>(ParseResult.UNREGISTERED_CONTEXT, new LinkedHashMap<>());
 
                 Object obj = commandContext.transform(sender, lastValue, builder.toString().isEmpty() ? stringValue : builder.toString().trim() + " " + stringValue);
                 if (obj == null)
-                    return new Pair<>(ParseResult.PARAMETER_TRANSFORMATION_FAILED, new HashMap<>());
+                    return new Pair<>(ParseResult.PARAMETER_TRANSFORMATION_FAILED, new LinkedHashMap<>());
 
                 transformationResults.put(parameter.id, obj);
                 lastValue = obj;
@@ -166,12 +166,12 @@ public abstract class STCommand {
         return new Pair<>(ParseResult.SUCCESS, transformationResults);
     }
 
-    private Pair<String, CommandExecutor> findExecutor(String s) {
+    private Pair<String, CommandExecutor<?>> findExecutor(String s) {
         Optional<String> executor = subExecutors.keySet().stream()
                 .sorted(Comparator.comparing(String::length))
                 .filter(s::startsWith)
                 .findFirst();
-        return executor.map(value -> new Pair<String, CommandExecutor>(value, subExecutors.get(value))).orElseGet(() -> new Pair<>(null, this.executor));
+        return executor.map(value -> new Pair<String, CommandExecutor<?>>(value, subExecutors.get(value))).orElseGet(() -> new Pair<>(null, this.executor));
 
     }
 

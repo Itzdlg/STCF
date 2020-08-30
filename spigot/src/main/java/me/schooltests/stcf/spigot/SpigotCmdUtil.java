@@ -95,7 +95,7 @@ public class SpigotCmdUtil {
             @Override
             public String getIdentifier() {
                 if (sender instanceof Player)
-                    return String.valueOf(((Player) sender).getUniqueId());
+                    return ((Player) sender).getUniqueId().toString();
                 else
                     return null;
             }

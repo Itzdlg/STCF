@@ -4,7 +4,6 @@ import me.schooltests.stcf.core.STCommandManager;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 
 public abstract class CommandExecutor<T extends STCommand> {
     public final T command;
@@ -23,7 +22,7 @@ public abstract class CommandExecutor<T extends STCommand> {
         return "";
     }
 
-    public abstract void execute(SimpleSender sender, Map<String, Object> args);
+    public abstract void execute(SimpleSender sender, CommandArguments args);
 
     public List<String> tabComplete(SimpleSender sender, CommandParameter parameter, Object lastValue, String value) {
         return manager.getRegisteredContext(parameter.contextClass).tabComplete(sender, lastValue, value);

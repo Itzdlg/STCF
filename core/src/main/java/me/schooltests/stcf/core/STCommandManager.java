@@ -10,10 +10,10 @@ import java.util.Set;
 
 public abstract class STCommandManager {
     public void registerCommand(STCommand command) { }
-    public void registerContext(CommandContext context) { }
+    public void registerContext(CommandContext<?> context) { }
 
     public STCommand getRegisteredCommand(Class<? extends STCommand> clazz) { return null; }
-    public CommandContext<?> getRegisteredContext(Class clazz) { return null; }
+    public CommandContext<?> getRegisteredContext(Class<?> clazz) { return null; }
 
     public Set<STCommand> getCommandRegistrations() { return null; }
     public Set<CommandContext<?>> getContextRegistrations() { return null; }
