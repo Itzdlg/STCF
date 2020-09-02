@@ -1,8 +1,9 @@
 package me.schooltests.stcf.core;
 
-import me.schooltests.stcf.core.command.CommandContext;
+import me.schooltests.stcf.core.args.CommandContext;
 import me.schooltests.stcf.core.command.STCommand;
 import me.schooltests.stcf.core.command.SimpleSender;
+import me.schooltests.stcf.core.locale.MessageLocale;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -17,6 +18,9 @@ public abstract class STCommandManager {
 
     public Set<STCommand> getCommandRegistrations() { return null; }
     public Set<CommandContext<?>> getContextRegistrations() { return null; }
+
+    public void setLocale(MessageLocale locale) { }
+    public MessageLocale getLocale() { return null; }
 
     protected void registerDefaultContexts() {
         registerContext(new CommandContext<String>() {

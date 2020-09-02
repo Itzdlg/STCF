@@ -1,9 +1,11 @@
 package me.schooltests.stcf.spigot;
 
 import me.schooltests.stcf.core.command.CommandExecutor;
-import me.schooltests.stcf.core.command.CommandParameter;
+import me.schooltests.stcf.core.args.CommandParameter;
+import me.schooltests.stcf.core.command.ExecutionResult;
 import me.schooltests.stcf.core.command.STCommand;
 import me.schooltests.stcf.core.command.SimpleSender;
+import me.schooltests.stcf.core.locale.MessageLocale;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
@@ -17,27 +19,31 @@ import java.util.function.BiConsumer;
 
 public class SpigotCmdUtil {
     public static Command getCommandFromSTCommand(STCommand command) {
+        SpigotSTCommandManager manager = (SpigotSTCommandManager) command.manager;
+        MessageLocale locale = manager.getLocale();
+
         Command cmd = new Command(command.id, command.getDescription(), "/" + command.id, command.getAliases()) {
             @Override
             public boolean execute(CommandSender commandSender, String label, String[] args) {
-                STCommand.ParseResult result = command.executeCommandFromString(toSimpleSender(commandSender), String.join(" ", args));
+                ExecutionResult result = command.executeCommandFromString(toSimpleSender(commandSender), String.join(" ", args));
 
-                switch (result) {
+                switch (result.parseResult) {
                     case MISSING_PARAMETER:
                     case PARAMETER_TRANSFORMATION_FAILED:
                     case NO_MATCHING_EXECUTOR:
-                        commandSender.sendMessage(getUsageMessage(command));
+                    case EXECUTION_CANCELLED:
+                        commandSender.sendMessage(locale.getUsageMessage(command, result.executor, result.alias));
                         break;
                     case UNREGISTERED_CONTEXT:
-                        commandSender.sendMessage(ChatColor.RED + "An error occurred with the command!");
+                        commandSender.sendMessage(locale.getErrorMessage(command));
                         Bukkit.getLogger().severe("[STCF] " + command.id + " has a fatal error! A command parameter is using an unregistered context type!");
                         break;
                     case NO_EXECUTORS:
-                        commandSender.sendMessage(ChatColor.RED + "An error occurred with the command!");
+                        commandSender.sendMessage(locale.getErrorMessage(command));
                         Bukkit.getLogger().severe("[STCF] " + command.id + " has a fatal error! A command (" + command.id + ") has no executors!");
                         break;
                     case NO_PERMISSION:
-                        commandSender.sendMessage(ChatColor.DARK_GRAY + "[" + ChatColor.GOLD + ((SpigotSTCommandManager) command.manager).plugin + ChatColor.DARK_GRAY + "] " + ChatColor.RED + "You are missing the required permissions for this command!");
+                        commandSender.sendMessage(locale.getPermissionMessage(command, result.executor, result.executor == null ? "" : result.executor.getPermission()));
                         break;
                 }
 
@@ -50,34 +56,11 @@ public class SpigotCmdUtil {
             }
         };
 
-        cmd.setUsage(getUsageMessage(command));
+        cmd.setUsage(locale.getUsageMessage(command, null, null));
         cmd.setAliases(command.getAliases());
         cmd.setDescription(command.getDescription());
 
         return cmd;
-    }
-
-    public static String getUsageMessage(STCommand command) {
-        BiConsumer<StringBuilder, CommandParameter> appendRule = (message, parameter) ->
-                message.append(" ").append(parameter.required ? "<" : "[").append(parameter.id).append(parameter.required ? ">" : "]");
-
-        StringBuilder message = new StringBuilder();
-        message.append("\n").append(ChatColor.GRAY).append("Usage for ").append(ChatColor.GOLD).append("/").append(command.id).append("\n");
-        message.append(ChatColor.GRAY).append("-----------------------------------").append("\n");
-        message.append(ChatColor.GRAY).append("/").append(command.id).append(ChatColor.GOLD);
-        for (CommandParameter parameter : command.getExecutor().getParameters())
-            appendRule.accept(message, parameter);
-
-        for (String key : command.getSubExecutors().keySet()) {
-            CommandExecutor<?> executor = command.getSubExecutors().get(key);
-            message.append("\n").append(ChatColor.GRAY).append("/").append(command.id).append(" ").append(key).append(ChatColor.GOLD);
-            for (CommandParameter parameter : executor.getParameters())
-                appendRule.accept(message, parameter);
-        }
-
-        message.append("\n").append(ChatColor.GRAY).append("-----------------------------------").append("\n");
-
-        return message.toString();
     }
 
     public static Player toPlayer(SimpleSender sender) {

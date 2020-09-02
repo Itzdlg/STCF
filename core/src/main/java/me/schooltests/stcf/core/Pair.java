@@ -16,4 +16,8 @@ public class Pair<K, V> {
     public V getValue() {
         return value;
     }
+
+    public static <K> Pair<K, K> duplicate(K val) {
+        return new Pair<K, K>(val, val);
+    }
 }

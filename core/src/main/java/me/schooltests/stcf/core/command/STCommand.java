@@ -2,6 +2,9 @@ package me.schooltests.stcf.core.command;
 
 import me.schooltests.stcf.core.Pair;
 import me.schooltests.stcf.core.STCommandManager;
+import me.schooltests.stcf.core.args.CommandArguments;
+import me.schooltests.stcf.core.args.CommandContext;
+import me.schooltests.stcf.core.args.CommandParameter;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -17,7 +20,9 @@ import java.util.Optional;
 public abstract class STCommand {
     public final STCommandManager manager;
     protected CommandExecutor<?> executor;
-    protected Map<String, CommandExecutor<?>> subExecutors;
+
+    private Map<String, CommandExecutor<?>> subExecutors;
+    private Map<String, List<String>> subExecutorsAliases;
 
     public final String id;
     protected List<String> aliases;
@@ -29,6 +34,7 @@ public abstract class STCommand {
 
         this.executor = null;
         this.subExecutors = new LinkedHashMap<>();
+        this.subExecutorsAliases = new HashMap<>();
 
         description = "/" + id;
         aliases = new ArrayList<>();
@@ -42,12 +48,18 @@ public abstract class STCommand {
         return Collections.unmodifiableMap(subExecutors);
     }
 
-    public final ParseResult executeCommandFromString(SimpleSender sender, String full) {
+    public final void addSubCommand(String id, CommandExecutor<?> executor, String... aliases) {
+        subExecutors.put(id, executor);
+        if (aliases.length > 0)
+            subExecutorsAliases.put(id, Arrays.asList(aliases));
+    }
+
+    public final ExecutionResult executeCommandFromString(SimpleSender sender, String full) {
         full = full.trim();
 
         // s shall only contain arguments with a join of one space character
         if (subExecutors.size() == 0 && executor == null)
-            return ParseResult.NO_EXECUTORS;
+            return new ExecutionResult(this, ParseResult.NO_EXECUTORS, null, null);
 
         Pair<String, CommandExecutor<?>> executionPair = findExecutor(full);
         String parameters;
@@ -61,10 +73,10 @@ public abstract class STCommand {
 
         CommandExecutor<?> executor = executionPair.getValue();
         if (executor == null)
-            return ParseResult.NO_MATCHING_EXECUTOR;
+            return new ExecutionResult(this, ParseResult.NO_MATCHING_EXECUTOR, null, null);
 
         if (!sender.hasPermission(executor.getPermission()))
-            return ParseResult.NO_PERMISSION;
+            return new ExecutionResult(this, ParseResult.NO_PERMISSION, executor, executionPair.getKey());
 
         String[] arguments = parameters.split(" ");
         if (parameters.isEmpty()) arguments = new String[0];
@@ -75,18 +87,22 @@ public abstract class STCommand {
                 .count();
 
         if (arguments.length < numRequiredParameters)
-            return ParseResult.MISSING_PARAMETER;
+            return new ExecutionResult(this, ParseResult.MISSING_PARAMETER, executor, executionPair.getKey());
 
         if (executor.getParameters().size() <= 0) {
-            executor.execute(sender, new CommandArguments(new LinkedHashMap<>()));
-            return ParseResult.SUCCESS;
+            boolean success = executor.execute(sender, new CommandArguments(new LinkedHashMap<>()));
+            if (!success) return new ExecutionResult(this, ParseResult.EXECUTION_CANCELLED, executor, executionPair.getKey());
+            return new ExecutionResult(this, ParseResult.SUCCESS, executor, executionPair.getKey());
         }
 
         Pair<ParseResult, LinkedHashMap<String, Object>> parseResult = parseTransformations(sender, executor, arguments);
-        if (parseResult.getKey() == ParseResult.SUCCESS)
-            executor.execute(sender, new CommandArguments(parseResult.getValue()));
+        if (parseResult.getKey() == ParseResult.SUCCESS) {
+            boolean success = executor.execute(sender, new CommandArguments(parseResult.getValue()));
+            if (!success) return new ExecutionResult(this, ParseResult.EXECUTION_CANCELLED, executor, executionPair.getKey());
+            return new ExecutionResult(this, ParseResult.SUCCESS, executor, executionPair.getKey());
+        }
 
-        return parseResult.getKey();
+        return new ExecutionResult(this, parseResult.getKey(), executor, executionPair.getKey());
     }
 
     public final List<String> parseTabCompletion(SimpleSender sender, String[] args) {
@@ -167,11 +183,20 @@ public abstract class STCommand {
     }
 
     private Pair<String, CommandExecutor<?>> findExecutor(String s) {
-        Optional<String> executor = subExecutors.keySet().stream()
+        Map<String, CommandExecutor<?>> map = new HashMap<>();
+        subExecutors.forEach((key, value) -> {
+            map.put(key, value);
+            if (subExecutorsAliases.containsKey(key)) {
+                for (String i : subExecutorsAliases.get(key))
+                    map.put(i, value);
+            }
+        });
+
+        Optional<String> executor = map.keySet().stream()
                 .sorted(Comparator.comparing(String::length))
                 .filter(s::startsWith)
                 .findFirst();
-        return executor.map(value -> new Pair<String, CommandExecutor<?>>(value, subExecutors.get(value))).orElseGet(() -> new Pair<>(null, this.executor));
+        return executor.map(value -> new Pair<String, CommandExecutor<?>>(value, map.get(value))).orElseGet(() -> new Pair<>(null, this.executor));
 
     }
 
@@ -184,6 +209,6 @@ public abstract class STCommand {
     }
 
     public enum ParseResult {
-        SUCCESS, NO_PERMISSION, NO_MATCHING_EXECUTOR, NO_EXECUTORS, UNREGISTERED_CONTEXT, MISSING_PARAMETER, PARAMETER_TRANSFORMATION_FAILED
+        SUCCESS, NO_PERMISSION, NO_MATCHING_EXECUTOR, NO_EXECUTORS, UNREGISTERED_CONTEXT, MISSING_PARAMETER, PARAMETER_TRANSFORMATION_FAILED, EXECUTION_CANCELLED;
     }
 }

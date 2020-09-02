@@ -1,4 +1,6 @@
-package me.schooltests.stcf.core.command;
+package me.schooltests.stcf.core.args;
+
+import me.schooltests.stcf.core.command.SimpleSender;
 
 import java.util.List;
 

@@ -1,9 +1,10 @@
 package me.schooltests.stcf.spigot;
 
 import me.schooltests.stcf.core.STCommandManager;
-import me.schooltests.stcf.core.command.CommandContext;
+import me.schooltests.stcf.core.args.CommandContext;
 import me.schooltests.stcf.core.command.STCommand;
 import me.schooltests.stcf.core.command.SimpleSender;
+import me.schooltests.stcf.core.locale.MessageLocale;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;
@@ -29,6 +30,8 @@ public class SpigotSTCommandManager extends STCommandManager {
     private final Set<STCommand> commands;
     private final Set<CommandContext<?>> contexts;
 
+    private MessageLocale locale;
+
     static {
         try {
             final Field field = Bukkit.getServer().getClass().getDeclaredField("commandMap");
@@ -44,6 +47,7 @@ public class SpigotSTCommandManager extends STCommandManager {
         this.plugin = plugin;
         this.commands = new HashSet<>();
         this.contexts = new HashSet<>();
+        this.locale = new SpigotLocale();
 
         registerDefaultContexts();
         registerSpigotContexts();
@@ -78,6 +82,16 @@ public class SpigotSTCommandManager extends STCommandManager {
     @Override
     public Set<CommandContext<?>> getContextRegistrations() {
         return Collections.unmodifiableSet(contexts);
+    }
+
+    @Override
+    public MessageLocale getLocale() {
+        return locale;
+    }
+
+    @Override
+    public void setLocale(MessageLocale locale) {
+        this.locale = locale;
     }
 
     private void registerSpigotContexts() {

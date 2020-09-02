@@ -7,7 +7,7 @@
     <groupId>me.schooltests.stcf</groupId>
     <artifactId>stcf</artifactId>
     <packaging>pom</packaging>
-    <version>1.0.0</version>
+    <version>1.1.0</version>
     <modules>
         <module>core</module>
         <module>spigot</module>

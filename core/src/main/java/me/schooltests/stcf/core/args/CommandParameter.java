@@ -1,4 +1,4 @@
-package me.schooltests.stcf.core.command;
+package me.schooltests.stcf.core.args;
 
 @SuppressWarnings({"WeakerAccess"})
 public class CommandParameter {

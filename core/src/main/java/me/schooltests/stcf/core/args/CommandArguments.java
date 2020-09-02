@@ -1,4 +1,4 @@
-package me.schooltests.stcf.core.command;
+package me.schooltests.stcf.core.args;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -15,10 +15,15 @@ public class CommandArguments {
     }
 
     public Object get(int i) {
+        if (i >= order.size())
+            return order.get(order.size() - 1);
+
         return argMap.get(order.get(i));
     }
 
     public <T> T get(int i, Class<T> clazz) {
+        if (get(i) == null) return null;
+
         try {
             return clazz.cast(get(i));
         } catch (ClassCastException e) {
@@ -31,6 +36,8 @@ public class CommandArguments {
     }
 
     public <T> T get(String key, Class<T> clazz) {
+        if (get(key) == null) return null;
+
         try {
             return clazz.cast(get(key));
         } catch (ClassCastException e) {
